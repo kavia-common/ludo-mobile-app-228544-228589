@@ -42,12 +42,26 @@ class MatchStatus(str, enum.Enum):
 
 
 class ReceiptStatus(str, enum.Enum):
-    """Status of an IAP receipt verification."""
+    """Status of an IAP receipt verification.
 
-    received = "received"
+    Notes:
+    - DB enum was initially created with: received, verified, rejected, refunded.
+    - Step 6 introduces API-level statuses: pending, failed.
+    - To avoid a migration in this step, we map:
+        pending -> received
+        failed  -> rejected
+      when persisting.
+    """
+
+    # Existing persisted values
+    received = "received"   # used as "pending" at API-level
     verified = "verified"
-    rejected = "rejected"
+    rejected = "rejected"   # used as "failed" at API-level
     refunded = "refunded"
+
+    # API-level aliases (not persisted directly without mapping)
+    pending = "pending"
+    failed = "failed"
 
 
 class FeatureFlagScope(str, enum.Enum):

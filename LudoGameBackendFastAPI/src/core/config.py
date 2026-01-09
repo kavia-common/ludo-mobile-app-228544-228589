@@ -40,6 +40,49 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=None, extra="ignore")
 
+    # --- Store / IAP ---
+    # These are intentionally optional. If not configured, verification will fall back to "received"/"pending"
+    # behavior and return a clear reason in responses (preview-safe).
+    iap_verification_enabled: bool = Field(
+        default=False,
+        description="Enable external Apple/Google receipt verification. If false, verification remains stubbed.",
+        validation_alias="IAP_VERIFICATION_ENABLED",
+    )
+
+    # Apple (App Store) verification configuration (stubbed adapter with signature checks/TODOs).
+    apple_iap_bundle_id: Optional[str] = Field(
+        default=None,
+        description="Expected iOS bundle id for App Store receipts.",
+        validation_alias="APPLE_IAP_BUNDLE_ID",
+    )
+    apple_iap_shared_secret: Optional[str] = Field(
+        default=None,
+        description="App Store shared secret for verifying auto-renewable subscriptions (if used).",
+        validation_alias="APPLE_IAP_SHARED_SECRET",
+    )
+    apple_iap_root_cert_sha256: Optional[str] = Field(
+        default=None,
+        description="Optional SHA-256 fingerprint for Apple root certificate (for production signature chain checks).",
+        validation_alias="APPLE_IAP_ROOT_CERT_SHA256",
+    )
+
+    # Google Play verification configuration (stubbed adapter with signature checks/TODOs).
+    google_iap_package_name: Optional[str] = Field(
+        default=None,
+        description="Expected Android package name for Google Play purchases.",
+        validation_alias="GOOGLE_IAP_PACKAGE_NAME",
+    )
+    google_iap_service_account_json: Optional[str] = Field(
+        default=None,
+        description="Google service account JSON (or path) for calling Android Publisher API in production.",
+        validation_alias="GOOGLE_IAP_SERVICE_ACCOUNT_JSON",
+    )
+    google_iap_public_key_b64: Optional[str] = Field(
+        default=None,
+        description="Base64-encoded RSA public key for verifying Google purchase signatures (legacy billing flow).",
+        validation_alias="GOOGLE_IAP_PUBLIC_KEY_B64",
+    )
+
     # --- App metadata ---
     app_name: str = Field(default="Ludo Game Backend", description="Service name used in logs and OpenAPI.")
     app_version: str = Field(default="0.1.0", description="Service version.")
@@ -112,6 +155,13 @@ class Settings(BaseSettings):
         default=True,
         description="Global toggle for feature flags/remote config system.",
         validation_alias="FEATURE_FLAGS_ENABLED",
+    )
+
+    # --- Store admin (stub) ---
+    store_admin_key: Optional[str] = Field(
+        default=None,
+        description="Shared secret for calling store admin stub endpoints (X-Admin-Key). If unset, admin endpoints are disabled.",
+        validation_alias="STORE_ADMIN_KEY",
     )
 
     # --- Observability ---

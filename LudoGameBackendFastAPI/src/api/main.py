@@ -55,6 +55,7 @@ def create_app() -> FastAPI:
         {"name": "sessions", "description": "Presence heartbeats, reconnect, and state restore."},
         {"name": "matches", "description": "Match state and server-authoritative dice rolls."},
         {"name": "turns", "description": "Turn submission and immutable turn history for auditing."},
+        {"name": "store", "description": "Storefront catalog, player inventory, and IAP purchase verification."},
     ]
 
     app = FastAPI(

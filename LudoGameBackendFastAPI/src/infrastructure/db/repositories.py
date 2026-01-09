@@ -174,19 +174,53 @@ class InventoryRepository:
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
 
-    async def grant_item(self, *, user_id: uuid.UUID, sku: str, item_type: str = "cosmetic", metadata: Optional[dict] = None) -> InventoryItem:
+    async def get_by_sku(self, *, user_id: uuid.UUID, sku: str) -> Optional[InventoryItem]:
+        stmt = select(InventoryItem).where(InventoryItem.user_id == user_id, InventoryItem.sku == sku)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
+
+    async def grant_item(
+        self,
+        *,
+        user_id: uuid.UUID,
+        sku: str,
+        item_type: str = "cosmetic",
+        metadata: Optional[dict] = None,
+    ) -> InventoryItem:
         item = InventoryItem(user_id=user_id, sku=sku, item_type=item_type, metadata=metadata or {}, is_equipped=False)
         self._session.add(item)
         await self._session.flush()
         return item
 
+    async def grant_item_if_missing(
+        self,
+        *,
+        user_id: uuid.UUID,
+        sku: str,
+        item_type: str = "cosmetic",
+        metadata: Optional[dict] = None,
+    ) -> InventoryItem:
+        existing = await self.get_by_sku(user_id=user_id, sku=sku)
+        if existing:
+            return existing
+        return await self.grant_item(user_id=user_id, sku=sku, item_type=item_type, metadata=metadata)
+
     async def list_items(self, *, user_id: uuid.UUID, limit: int = 100, offset: int = 0) -> Page:
-        stmt = select(InventoryItem).where(InventoryItem.user_id == user_id).order_by(InventoryItem.created_at.desc()).limit(limit).offset(offset)
+        stmt = (
+            select(InventoryItem)
+            .where(InventoryItem.user_id == user_id)
+            .order_by(InventoryItem.created_at.desc())
+            .limit(limit)
+            .offset(offset)
+        )
         items = (await self._session.execute(stmt)).scalars().all()
         return Page(items=items, limit=limit, offset=offset)
 
     async def set_equipped(self, *, user_id: uuid.UUID, sku: str, is_equipped: bool) -> None:
         stmt = update(InventoryItem).where(InventoryItem.user_id == user_id, InventoryItem.sku == sku).values(is_equipped=is_equipped)
+        await self._session.execute(stmt)
+
+    async def unequip_all_of_type(self, *, user_id: uuid.UUID, item_type: str) -> None:
+        stmt = update(InventoryItem).where(InventoryItem.user_id == user_id, InventoryItem.item_type == item_type).values(is_equipped=False)
         await self._session.execute(stmt)
 
 
@@ -195,6 +229,10 @@ class ReceiptRepository:
 
     def __init__(self, session: AsyncSession) -> None:
         self._session = session
+
+    async def get_by_transaction(self, *, platform: str, transaction_id: str) -> Optional[Receipt]:
+        stmt = select(Receipt).where(Receipt.platform == platform, Receipt.transaction_id == transaction_id)
+        return (await self._session.execute(stmt)).scalar_one_or_none()
 
     async def create(
         self,
@@ -217,8 +255,50 @@ class ReceiptRepository:
         await self._session.flush()
         return rec
 
-    async def set_status(self, *, platform: str, transaction_id: str, status: ReceiptStatus) -> None:
-        stmt = update(Receipt).where(Receipt.platform == platform, Receipt.transaction_id == transaction_id).values(status=status)
+    async def get_or_create_received(
+        self,
+        *,
+        user_id: uuid.UUID,
+        platform: str,
+        product_sku: str,
+        transaction_id: str,
+        raw_receipt: dict,
+    ) -> Receipt:
+        """
+        Idempotently get-or-create a receipt row.
+
+        - Uniqueness is (platform, transaction_id).
+        - If an existing receipt belongs to a different user, we do not overwrite ownership;
+          the service should treat it as already-processed and return that status.
+        """
+        existing = await self.get_by_transaction(platform=platform, transaction_id=transaction_id)
+        if existing:
+            # Keep raw receipt updated best-effort for audit/debug (without changing status).
+            existing.raw_receipt = raw_receipt or existing.raw_receipt
+            existing.product_sku = product_sku or existing.product_sku
+            await self._session.flush()
+            return existing
+        return await self.create(
+            user_id=user_id,
+            platform=platform,
+            product_sku=product_sku,
+            transaction_id=transaction_id,
+            raw_receipt=raw_receipt,
+        )
+
+    async def set_status(
+        self,
+        *,
+        platform: str,
+        transaction_id: str,
+        status: ReceiptStatus,
+        verified_at,
+    ) -> None:
+        stmt = (
+            update(Receipt)
+            .where(Receipt.platform == platform, Receipt.transaction_id == transaction_id)
+            .values(status=status, verified_at=verified_at)
+        )
         await self._session.execute(stmt)
 
 

@@ -11,6 +11,7 @@ from src.api.routers.v1.safe_chat import router as safe_chat_router
 from src.api.routers.v1.sessions import router as sessions_router
 from src.api.routers.v1.social import router as social_router
 from src.api.routers.v1.matches import router as matches_router
+from src.api.routers.v1.store import router as store_router
 from src.api.routers.v1.turns import router as turns_router
 
 router = APIRouter()
@@ -28,3 +29,6 @@ router.include_router(sessions_router)
 # Step 5: gameplay
 router.include_router(matches_router)
 router.include_router(turns_router)
+
+# Step 6: storefront / inventory / purchases
+router.include_router(store_router)
