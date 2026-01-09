@@ -53,6 +53,8 @@ def create_app() -> FastAPI:
         {"name": "matchmaking", "description": "Queue-based matchmaking (ranked/unranked) backed by Redis."},
         {"name": "lobbies", "description": "Private lobbies, invites, and starting matches."},
         {"name": "sessions", "description": "Presence heartbeats, reconnect, and state restore."},
+        {"name": "matches", "description": "Match state and server-authoritative dice rolls."},
+        {"name": "turns", "description": "Turn submission and immutable turn history for auditing."},
     ]
 
     app = FastAPI(

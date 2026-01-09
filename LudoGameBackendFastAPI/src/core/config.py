@@ -100,6 +100,13 @@ class Settings(BaseSettings):
         validation_alias="JWT_EXP_SECONDS",
     )
 
+    # --- Gameplay / fairness ---
+    rng_audit_salt: Optional[str] = Field(
+        default=None,
+        description="Secret salt used to hash/audit dice roll commitments. Strong random string recommended.",
+        validation_alias="RNG_AUDIT_SALT",
+    )
+
     # --- Feature flags ---
     feature_flags_enabled: bool = Field(
         default=True,

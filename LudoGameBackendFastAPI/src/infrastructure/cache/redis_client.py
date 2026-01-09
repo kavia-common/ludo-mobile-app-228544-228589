@@ -18,6 +18,7 @@ class RedisKeys:
 
     session_prefix: str = "session:"
     match_state_prefix: str = "match_state:"
+    match_pending_roll_prefix: str = "match_pending_roll:"
 
 
 _client: Optional[redis.Redis] = None
@@ -110,3 +111,29 @@ async def delete_match_state(*, match_id: str) -> None:
     client = _get_client()
     key = f"{_keys.match_state_prefix}{match_id}"
     await client.delete(key)
+
+
+def _pending_roll_key(match_id: str) -> str:
+    return f"{_keys.match_pending_roll_prefix}{match_id}"
+
+
+# PUBLIC_INTERFACE
+async def cache_pending_roll(*, match_id: str, payload: dict[str, Any], ttl_seconds: int = 300) -> None:
+    """Cache a pending dice roll for a match (ephemeral)."""
+    client = _get_client()
+    await client.set(_pending_roll_key(match_id), json.dumps(payload), ex=ttl_seconds)
+
+
+# PUBLIC_INTERFACE
+async def get_pending_roll(*, match_id: str) -> Optional[dict[str, Any]]:
+    """Get a pending dice roll payload for a match, if any."""
+    client = _get_client()
+    raw = await client.get(_pending_roll_key(match_id))
+    return json.loads(raw) if raw else None
+
+
+# PUBLIC_INTERFACE
+async def delete_pending_roll(*, match_id: str) -> None:
+    """Delete a pending dice roll key (if present)."""
+    client = _get_client()
+    await client.delete(_pending_roll_key(match_id))
