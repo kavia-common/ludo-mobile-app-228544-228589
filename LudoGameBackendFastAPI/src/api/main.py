@@ -50,6 +50,9 @@ def create_app() -> FastAPI:
         {"name": "players", "description": "Player profile endpoints."},
         {"name": "social", "description": "Friends, blocking, and social graph endpoints."},
         {"name": "safe-chat", "description": "Safe chat controls and preferences."},
+        {"name": "matchmaking", "description": "Queue-based matchmaking (ranked/unranked) backed by Redis."},
+        {"name": "lobbies", "description": "Private lobbies, invites, and starting matches."},
+        {"name": "sessions", "description": "Presence heartbeats, reconnect, and state restore."},
     ]
 
     app = FastAPI(
