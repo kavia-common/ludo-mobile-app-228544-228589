@@ -46,6 +46,10 @@ def create_app() -> FastAPI:
 
     openapi_tags = [
         {"name": "health", "description": "Service health and readiness endpoints."},
+        {"name": "auth", "description": "Identity issuance and JWT authentication (guest + optional linking)."},
+        {"name": "players", "description": "Player profile endpoints."},
+        {"name": "social", "description": "Friends, blocking, and social graph endpoints."},
+        {"name": "safe-chat", "description": "Safe chat controls and preferences."},
     ]
 
     app = FastAPI(
